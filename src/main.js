@@ -8,6 +8,13 @@ import { createFlightEffects } from './effects.js';
 import { getDeliveryCinematic, updateDeliveryStage } from './delivery.js';
 import { createHouseVillage } from './houses.js';
 import { playMerryChristmas, unlockVoice, playArriving, playTakeoff, speakLater } from './voice.js';
+import {
+    isCountdownMode,
+    COUNTDOWN_VILLAGE,
+    nextTakeoffMs,
+    splitCountdown,
+    getCountdownPose
+} from './countdown.js';
 
 const cesiumContainer = document.getElementById('cesiumContainer');
 const output360 = document.getElementById('output360');
@@ -68,9 +75,10 @@ async function initApp() {
         );
         const imageryLayer = viewer.imageryLayers.addImageryProvider(esriProvider);
         stabilizeImageryLayer(imageryLayer);
-        imageryLayer.brightness = 1.35;
-        imageryLayer.contrast = 1.08;
-        imageryLayer.gamma = 0.85;
+        const countdownLook = isCountdownMode();
+        imageryLayer.brightness = countdownLook ? 1.62 : 1.35;
+        imageryLayer.contrast = countdownLook ? 1.02 : 1.08;
+        imageryLayer.gamma = countdownLook ? 0.72 : 0.85;
     } catch (err) {
         console.warn('Fallback to OpenStreetMap provider:', err);
         const osmProvider = new Cesium.OpenStreetMapImageryProvider({
@@ -78,13 +86,13 @@ async function initApp() {
         });
         viewer.imageryLayers.addImageryProvider(osmProvider);
         stabilizeImageryLayer(viewer.imageryLayers.get(0));
-        viewer.imageryLayers.get(0).brightness = 1.35;
-        viewer.imageryLayers.get(0).gamma = 0.85;
+        viewer.imageryLayers.get(0).brightness = isCountdownMode() ? 1.62 : 1.35;
+        viewer.imageryLayers.get(0).gamma = isCountdownMode() ? 0.72 : 0.85;
     }
 
     // Globe settings for uniform 360 illumination and seamless tiles
     const globe = viewer.scene.globe;
-    globe.baseColor = Cesium.Color.fromCssColorString('#6a7a72');
+    globe.baseColor = Cesium.Color.fromCssColorString(isCountdownMode() ? '#d8e4ee' : '#6a7a72');
     configureGlobeStreaming(globe, viewer.scene);
     try {
         if (Cesium.CesiumTerrainProvider.fromIonAssetId) {
@@ -129,6 +137,62 @@ async function initApp() {
         viewer.creditDisplay.container.style.display = 'none';
     }
     if (viewer.bottomContainer) viewer.bottomContainer.style.display = 'none';
+
+    if (isCountdownMode()) {
+        document.title = 'Santa Tracking Countdown';
+        const houses = createHouseVillage(viewer, { snow: true });
+        const effects = createFlightEffects(viewer);
+        effects.setCountdownWeather(true);
+        const hud = new LeftLookHud(1280);
+        const pipeline = new Cubemap360Pipeline(viewer, output360, {
+            faceResolution: FACE_RESOLUTION,
+            hudCanvas: hud.canvas
+        });
+        const village = COUNTDOWN_VILLAGE;
+        houses.update(village.lat, village.lng, true, 'antarctica-vostok');
+
+        const FRAME_MS = 1000 / 30;
+        let lastFrameAt = 0;
+        const cine = {
+            fade: 0,
+            showHud: true,
+            showMinimap: false,
+            interior: false,
+            approach: 0,
+            rooftop: 0,
+            hideSanta: true,
+            showHouses: true
+        };
+
+        function render(now) {
+            requestAnimationFrame(render);
+            if (now - lastFrameAt < FRAME_MS - 1) return;
+            lastFrameAt = now;
+
+            const wall = Date.now();
+            viewer.clock.currentTime = Cesium.JulianDate.now();
+            const pose = getCountdownPose(viewer.scene, wall);
+            houses.update(village.lat, village.lng, true, 'antarctica-vostok');
+            effects.update(pose.pos, pose.vel, 0);
+            effects.setVisible(true);
+            hud.drawCountdown(splitCountdown(nextTakeoffMs(wall) - wall));
+            pipeline.renderFrame(
+                pose.pos,
+                pose.vel,
+                0,
+                cine,
+                village.lat,
+                village.lng,
+                [],
+                village.lat,
+                village.lng,
+                'Antarctica'
+            );
+        }
+
+        requestAnimationFrame(render);
+        return;
+    }
 
     // 2. Load Route Data
     let routeData;

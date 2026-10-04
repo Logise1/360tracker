@@ -236,6 +236,137 @@ export class LeftLookHud {
         ctx.restore();
     }
 
+    drawCountdown(clock) {
+        const ctx = this.ctx;
+        const S = this.size;
+        const k = S / 640;
+        const pad = Math.round(S * 0.05);
+        const x = pad;
+        const y = pad;
+        const w = S - pad * 2;
+        const h = S - pad * 2;
+        const r = Math.round(22 * k);
+
+        ctx.clearRect(0, 0, S, S);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+
+        ctx.save();
+        this._roundRect(ctx, x, y, w, h, r);
+        const bg = ctx.createLinearGradient(x, y, x, y + h);
+        bg.addColorStop(0, 'rgba(8, 14, 22, 0.93)');
+        bg.addColorStop(1, 'rgba(6, 10, 16, 0.95)');
+        ctx.fillStyle = bg;
+        ctx.fill();
+        ctx.lineWidth = Math.max(2, Math.round(2.5 * k));
+        ctx.strokeStyle = 'rgba(212, 175, 108, 0.85)';
+        ctx.stroke();
+        ctx.restore();
+
+        const inset = Math.round(22 * k);
+        const ix = x + inset;
+        const iy = y + inset;
+        const iw = w - inset * 2;
+        const ih = h - inset * 2;
+        const pad2 = (n) => String(n).padStart(2, '0');
+
+        ctx.save();
+        this._roundRect(ctx, ix, iy, iw, ih, Math.max(8, r - 10));
+        ctx.clip();
+
+        const pulse = 0.55 + 0.45 * Math.abs(Math.sin(Date.now() / 420));
+        ctx.fillStyle = clock.live
+            ? `rgba(46, 204, 113, ${0.75 + pulse * 0.25})`
+            : `rgba(220, 38, 38, ${0.75 + pulse * 0.25})`;
+        ctx.beginPath();
+        ctx.arc(ix + 14 * k, iy + 18 * k, 6 * k, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.78)';
+        ctx.font = `${Math.round(16 * k)}px "Lobster", cursive`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(clock.live ? 'NOW' : 'SOON', ix + 28 * k, iy + 18 * k);
+
+        ctx.textAlign = 'right';
+        ctx.fillStyle = 'rgba(212, 175, 108, 0.85)';
+        ctx.font = `${Math.round(15 * k)}px "Lobster", cursive`;
+        ctx.fillText('10:00 GMT', ix + iw - 4 * k, iy + 18 * k);
+
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillStyle = '#ffd76a';
+        ctx.font = `${Math.round(30 * k)}px "Lobster", cursive`;
+        ctx.fillText('Santa Tracking Countdown', ix + iw / 2, iy + 62 * k);
+
+        ctx.fillStyle = 'rgba(255, 215, 106, 0.72)';
+        ctx.font = `${Math.round(16 * k)}px "Lobster", cursive`;
+        ctx.fillText('December 24  ·  Takeoff', ix + iw / 2, iy + 86 * k);
+
+        ctx.strokeStyle = 'rgba(212, 175, 108, 0.28)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(ix + 8 * k, iy + 100 * k);
+        ctx.lineTo(ix + iw - 8 * k, iy + 100 * k);
+        ctx.stroke();
+
+        const cells = [
+            [clock.days, 'Days'],
+            [clock.hours, 'Hours'],
+            [clock.minutes, 'Minutes'],
+            [clock.seconds, 'Seconds']
+        ];
+        const gap = 10 * k;
+        const cellW = (iw - gap * 3) / 4;
+        const cellY = iy + 118 * k;
+        const cellH = 92 * k;
+        cells.forEach((cell, i) => {
+            const cx = ix + i * (cellW + gap);
+            ctx.fillStyle = 'rgba(255,255,255,0.05)';
+            this._roundRect(ctx, cx, cellY, cellW, cellH, 10 * k);
+            ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `${Math.round(34 * k)}px "Lobster", cursive`;
+            ctx.textBaseline = 'middle';
+            ctx.fillText(pad2(cell[0]), cx + cellW / 2, cellY + cellH * 0.42);
+            ctx.fillStyle = 'rgba(255, 215, 106, 0.8)';
+            ctx.font = `${Math.round(13 * k)}px "Lobster", cursive`;
+            ctx.fillText(cell[1], cx + cellW / 2, cellY + cellH * 0.78);
+        });
+
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillStyle = clock.live ? '#7dffa3' : '#ffffff';
+        ctx.font = `${Math.round(22 * k)}px "Lobster", cursive`;
+        ctx.fillText(
+            clock.live ? 'Santa is live' : 'Until Santa takes off',
+            ix + iw / 2,
+            iy + 246 * k
+        );
+
+        this._block(
+            ctx,
+            ix + 4 * k,
+            iy + 268 * k,
+            iw - 8 * k,
+            70 * k,
+            'Staging Ground',
+            'Antarctica',
+            'Snow village  ·  Vostok ice sheet',
+            k
+        );
+        this._block(
+            ctx,
+            ix + 4 * k,
+            iy + 348 * k,
+            iw - 8 * k,
+            70 * k,
+            'Broadcast',
+            clock.live ? 'Switch to live tracker' : 'Waiting for December 24',
+            'mode=countdown',
+            k
+        );
+        ctx.restore();
+    }
+
     _block(ctx, x, y, width, height, label, value, sub, k = 1) {
         const cx = x + width / 2;
         const hasSub = Boolean(sub);

@@ -680,7 +680,7 @@ export class Cubemap360Pipeline {
         }
 
         beginCubeRenderPass(globe);
-        if (cine.showHud && (this._frame & 1) === 0) {
+        if (cine.showHud && cine.showMinimap !== false && (this._frame & 1) === 0) {
             this._captureGlobeMinimap(
                 santaPos,
                 destLat,
@@ -723,15 +723,18 @@ export class Cubemap360Pipeline {
                 ctx.drawImage(viewer.canvas, 0, 0, res, res);
 
                 const pad = Math.round(res * 0.035);
-                const gap = Math.round(res * 0.025);
-                const panel = Math.round((res - pad * 2 - gap) / 2);
-                const y = Math.round((res - panel) / 2);
-
-                if (this.hudCanvas) {
+                const showMap = cine.showMinimap !== false && this.globeMapCanvas;
+                if (showMap && this.hudCanvas) {
+                    const gap = Math.round(res * 0.025);
+                    const panel = Math.round((res - pad * 2 - gap) / 2);
+                    const y = Math.round((res - panel) / 2);
                     ctx.drawImage(this.hudCanvas, pad, y, panel, panel);
-                }
-                if (this.globeMapCanvas) {
                     ctx.drawImage(this.globeMapCanvas, pad + panel + gap, y, panel, panel);
+                } else if (this.hudCanvas) {
+                    const panel = Math.round(res * 0.72);
+                    const x = Math.round((res - panel) / 2);
+                    const y = Math.round((res - panel) / 2);
+                    ctx.drawImage(this.hudCanvas, x, y, panel, panel);
                 }
                 source = this.compositeCanvas;
             }

@@ -156,5 +156,15 @@ export function createFlightEffects(viewer) {
         gifts.show = visible;
     }
 
-    return { update, setVisible };
+    function setCountdownWeather(on) {
+        if (on) {
+            snow.emissionRate = 28;
+            sparkles.emissionRate = 6;
+            gifts.emissionRate = 0;
+            gifts.show = false;
+            snow.emitter = new Cesium.SphereEmitter(48.0);
+        }
+    }
+
+    return { update, setVisible, setCountdownWeather };
 }
