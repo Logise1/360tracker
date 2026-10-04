@@ -13,7 +13,9 @@ import {
     COUNTDOWN_VILLAGE,
     nextTakeoffMs,
     splitCountdown,
-    getCountdownPose
+    getCountdownPose,
+    getVillageGround,
+    sampleVillageGround
 } from './countdown.js';
 
 const cesiumContainer = document.getElementById('cesiumContainer');
@@ -76,9 +78,9 @@ async function initApp() {
         const imageryLayer = viewer.imageryLayers.addImageryProvider(esriProvider);
         stabilizeImageryLayer(imageryLayer);
         const countdownLook = isCountdownMode();
-        imageryLayer.brightness = countdownLook ? 1.62 : 1.35;
-        imageryLayer.contrast = countdownLook ? 1.02 : 1.08;
-        imageryLayer.gamma = countdownLook ? 0.72 : 0.85;
+        imageryLayer.brightness = countdownLook ? 1.12 : 1.35;
+        imageryLayer.contrast = countdownLook ? 1.18 : 1.08;
+        imageryLayer.gamma = countdownLook ? 1.05 : 0.85;
     } catch (err) {
         console.warn('Fallback to OpenStreetMap provider:', err);
         const osmProvider = new Cesium.OpenStreetMapImageryProvider({
@@ -86,13 +88,13 @@ async function initApp() {
         });
         viewer.imageryLayers.addImageryProvider(osmProvider);
         stabilizeImageryLayer(viewer.imageryLayers.get(0));
-        viewer.imageryLayers.get(0).brightness = isCountdownMode() ? 1.62 : 1.35;
-        viewer.imageryLayers.get(0).gamma = isCountdownMode() ? 0.72 : 0.85;
+        viewer.imageryLayers.get(0).brightness = isCountdownMode() ? 1.12 : 1.35;
+        viewer.imageryLayers.get(0).gamma = isCountdownMode() ? 1.05 : 0.85;
     }
 
     // Globe settings for uniform 360 illumination and seamless tiles
     const globe = viewer.scene.globe;
-    globe.baseColor = Cesium.Color.fromCssColorString(isCountdownMode() ? '#d8e4ee' : '#6a7a72');
+    globe.baseColor = Cesium.Color.fromCssColorString(isCountdownMode() ? '#7a8a92' : '#6a7a72');
     configureGlobeStreaming(globe, viewer.scene);
     try {
         if (Cesium.CesiumTerrainProvider.fromIonAssetId) {
@@ -118,9 +120,9 @@ async function initApp() {
         }
     }
     if (typeof viewer.scene.verticalExaggeration === 'number') {
-        viewer.scene.verticalExaggeration = 1.85;
+        viewer.scene.verticalExaggeration = isCountdownMode() ? 1.0 : 1.85;
     } else if (globe.terrainExaggeration !== undefined) {
-        globe.terrainExaggeration = 1.85;
+        globe.terrainExaggeration = isCountdownMode() ? 1.0 : 1.85;
     }
     globe.enableLighting = false;
     if (viewer.scene.light && viewer.scene.light.intensity !== undefined) {
@@ -149,7 +151,10 @@ async function initApp() {
             hudCanvas: hud.canvas
         });
         const village = COUNTDOWN_VILLAGE;
-        houses.update(village.lat, village.lng, true, 'antarctica-vostok');
+        sampleVillageGround(viewer.terrainProvider).then(() => {
+            houses.update(village.lat, village.lng, true, 'antarctica-neko', getVillageGround());
+        });
+        houses.update(village.lat, village.lng, true, 'antarctica-neko', getVillageGround());
 
         const FRAME_MS = 1000 / 30;
         let lastFrameAt = 0;
@@ -161,7 +166,8 @@ async function initApp() {
             approach: 0,
             rooftop: 0,
             hideSanta: true,
-            showHouses: true
+            showHouses: true,
+            skipTerrainLift: true
         };
 
         function render(now) {
@@ -172,7 +178,7 @@ async function initApp() {
             const wall = Date.now();
             viewer.clock.currentTime = Cesium.JulianDate.now();
             const pose = getCountdownPose(viewer.scene, wall);
-            houses.update(village.lat, village.lng, true, 'antarctica-vostok');
+            houses.update(village.lat, village.lng, true, 'antarctica-neko', pose.ground);
             effects.update(pose.pos, pose.vel, 0);
             effects.setVisible(true);
             hud.drawCountdown(splitCountdown(nextTakeoffMs(wall) - wall));

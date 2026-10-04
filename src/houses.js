@@ -32,7 +32,9 @@ export function createHouseVillage(viewer, options = {}) {
             box: {
                 dimensions: new Cesium.Cartesian3(9, 8, 6),
                 material: Cesium.Color.fromCssColorString('#c62828'),
-                heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND
+                heightReference: snow
+                    ? Cesium.HeightReference.NONE
+                    : Cesium.HeightReference.RELATIVE_TO_GROUND
             }
         }));
         roofs.push(viewer.entities.add({
@@ -40,7 +42,9 @@ export function createHouseVillage(viewer, options = {}) {
             box: {
                 dimensions: new Cesium.Cartesian3(10.5, 9.2, 2.2),
                 material: Cesium.Color.fromCssColorString(snow ? '#f4f7fb' : '#eceff1'),
-                heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND
+                heightReference: snow
+                    ? Cesium.HeightReference.NONE
+                    : Cesium.HeightReference.RELATIVE_TO_GROUND
             }
         }));
     }
@@ -53,7 +57,9 @@ export function createHouseVillage(viewer, options = {}) {
                 topRadius: 0.15,
                 bottomRadius: 3.6,
                 material: Cesium.Color.fromCssColorString('#1b4332'),
-                heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND
+                heightReference: snow
+                    ? Cesium.HeightReference.NONE
+                    : Cesium.HeightReference.RELATIVE_TO_GROUND
             }
         }));
     }
@@ -62,11 +68,10 @@ export function createHouseVillage(viewer, options = {}) {
         extras.push(viewer.entities.add({
             show: false,
             polygon: {
-                hierarchy: new Cesium.PolygonHierarchy(),
-                material: Cesium.Color.fromCssColorString('#e8eef4').withAlpha(0.72),
-                outline: true,
-                outlineColor: Cesium.Color.fromCssColorString('#c9a227').withAlpha(0.55),
-                heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+                hierarchy: Cesium.Cartesian3.fromDegreesArray([-62.534, -64.844, -62.532, -64.844, -62.533, -64.842]),
+                material: Cesium.Color.fromCssColorString('#c4b089'),
+                height: 1,
+                outline: false
             }
         }));
         extras.push(viewer.entities.add({
@@ -74,7 +79,7 @@ export function createHouseVillage(viewer, options = {}) {
             box: {
                 dimensions: new Cesium.Cartesian3(22, 16, 11),
                 material: Cesium.Color.fromCssColorString('#7a1f1f'),
-                heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND
+                heightReference: Cesium.HeightReference.NONE
             }
         }));
         extras.push(viewer.entities.add({
@@ -82,16 +87,17 @@ export function createHouseVillage(viewer, options = {}) {
             box: {
                 dimensions: new Cesium.Cartesian3(24.5, 18.2, 3.2),
                 material: Cesium.Color.fromCssColorString('#f7f9fc'),
-                heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND
+                heightReference: Cesium.HeightReference.NONE
             }
         }));
     }
 
     let lastKey = '';
 
-    function update(lat, lng, visible, cityKey) {
+    function update(lat, lng, visible, cityKey, groundHeight) {
         if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-        const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+        const ground = snow && Number.isFinite(groundHeight) ? groundHeight : 0;
+        const key = `${lat.toFixed(4)},${lng.toFixed(4)},${Math.round(ground)}`;
         if (key !== lastKey) {
             lastKey = key;
             const seed = hash01(cityKey || key);
@@ -100,7 +106,7 @@ export function createHouseVillage(viewer, options = {}) {
             for (let i = 0; i < COUNT; i++) {
                 const u = rand(i, seed);
                 const v = rand(i + 90, seed);
-                const spread = snow ? 28 + u * 210 : 40 + u * 280;
+                const spread = snow ? 22 + u * 95 : 40 + u * 280;
                 const ang = v * Math.PI * 2;
                 const x = Math.cos(ang) * spread * (0.55 + rand(i + 3, seed) * 0.7);
                 const y = Math.sin(ang) * spread * (0.55 + rand(i + 7, seed) * 0.7);
@@ -111,16 +117,24 @@ export function createHouseVillage(viewer, options = {}) {
                 const dLng = x / metersToLng;
                 const color = palette[Math.floor(rand(i + 21, seed) * palette.length)];
 
-                bodies[i].position = Cesium.Cartesian3.fromDegrees(lng + dLng, lat + dLat, h * 0.5);
+                bodies[i].position = Cesium.Cartesian3.fromDegrees(
+                    lng + dLng,
+                    lat + dLat,
+                    ground + h * 0.5
+                );
                 bodies[i].box.dimensions = new Cesium.Cartesian3(w, d, h);
                 bodies[i].box.material = Cesium.Color.fromCssColorString(color);
-                roofs[i].position = Cesium.Cartesian3.fromDegrees(lng + dLng, lat + dLat, h + 1.0);
+                roofs[i].position = Cesium.Cartesian3.fromDegrees(
+                    lng + dLng,
+                    lat + dLat,
+                    ground + h + 1.0
+                );
                 roofs[i].box.dimensions = new Cesium.Cartesian3(w + 1.6, d + 1.6, 2.0);
             }
             for (let i = 0; i < TREE_COUNT; i++) {
                 const u = rand(i + 200, seed);
                 const v = rand(i + 280, seed);
-                const spread = 18 + u * 240;
+                const spread = 16 + u * 110;
                 const ang = v * Math.PI * 2;
                 const x = Math.cos(ang) * spread;
                 const y = Math.sin(ang) * spread;
@@ -128,7 +142,7 @@ export function createHouseVillage(viewer, options = {}) {
                 trees[i].position = Cesium.Cartesian3.fromDegrees(
                     lng + x / metersToLng,
                     lat + y / 110540,
-                    len * 0.5
+                    ground + len * 0.5
                 );
                 trees[i].cylinder.length = len;
                 trees[i].cylinder.bottomRadius = 2.4 + rand(i + 340, seed) * 2.2;
@@ -137,14 +151,15 @@ export function createHouseVillage(viewer, options = {}) {
                 const ring = [];
                 for (let k = 0; k < 8; k++) {
                     const a = (k / 8) * Math.PI * 2;
-                    ring.push(lng + (Math.cos(a) * 22) / metersToLng);
-                    ring.push(lat + (Math.sin(a) * 22) / 110540);
+                    ring.push(lng + (Math.cos(a) * 18) / metersToLng);
+                    ring.push(lat + (Math.sin(a) * 18) / 110540);
                 }
                 extras[0].polygon.hierarchy = new Cesium.PolygonHierarchy(
                     Cesium.Cartesian3.fromDegreesArray(ring)
                 );
-                extras[1].position = Cesium.Cartesian3.fromDegrees(lng, lat, 6);
-                extras[2].position = Cesium.Cartesian3.fromDegrees(lng, lat, 12.2);
+                extras[0].polygon.height = ground + 0.35;
+                extras[1].position = Cesium.Cartesian3.fromDegrees(lng, lat, ground + 6);
+                extras[2].position = Cesium.Cartesian3.fromDegrees(lng, lat, ground + 12.2);
             }
         }
 

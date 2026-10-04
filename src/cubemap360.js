@@ -617,14 +617,16 @@ export class Cubemap360Pipeline {
             }
         }
 
-        const lifted = liftAboveTerrain(
-            viewer.scene,
-            camPos,
-            heightClearance(approach, rooftop),
-            this._terrainPersist,
-            forward
-        );
-        Cesium.Cartesian3.clone(lifted, camPos);
+        if (cine.skipTerrainLift !== true) {
+            const lifted = liftAboveTerrain(
+                viewer.scene,
+                camPos,
+                heightClearance(approach, rooftop),
+                this._terrainPersist,
+                forward
+            );
+            Cesium.Cartesian3.clone(lifted, camPos);
+        }
 
         const levelDot = Cesium.Cartesian3.dot(forward, surfaceUp);
         Cesium.Cartesian3.subtract(
