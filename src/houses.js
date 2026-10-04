@@ -18,8 +18,8 @@ const SNOW_COLORS = ['#8b1e1e', '#6b2222', '#3d4f3a', '#5c4033', '#2f3d4a', '#7a
 
 export function createHouseVillage(viewer, options = {}) {
     const snow = options.snow === true;
-    const COUNT = snow ? 52 : 40;
-    const TREE_COUNT = snow ? 34 : 0;
+    const COUNT = snow ? 36 : 40;
+    const TREE_COUNT = snow ? 22 : 0;
     const palette = snow ? SNOW_COLORS : COLORS;
     const bodies = [];
     const roofs = [];
@@ -68,25 +68,25 @@ export function createHouseVillage(viewer, options = {}) {
         extras.push(viewer.entities.add({
             show: false,
             polygon: {
-                hierarchy: Cesium.Cartesian3.fromDegreesArray([-62.534, -64.844, -62.532, -64.844, -62.533, -64.842]),
-                material: Cesium.Color.fromCssColorString('#c4b089'),
-                height: 1,
+                hierarchy: Cesium.Cartesian3.fromDegreesArray([-82.87, -79.768, -82.864, -79.768, -82.867, -79.765]),
+                material: Cesium.Color.fromCssColorString('#b89b6a'),
+                height: 0.4,
                 outline: false
             }
         }));
         extras.push(viewer.entities.add({
             show: false,
             box: {
-                dimensions: new Cesium.Cartesian3(22, 16, 11),
-                material: Cesium.Color.fromCssColorString('#7a1f1f'),
+                dimensions: new Cesium.Cartesian3(36, 26, 16),
+                material: Cesium.Color.fromCssColorString('#9b1c1c'),
                 heightReference: Cesium.HeightReference.NONE
             }
         }));
         extras.push(viewer.entities.add({
             show: false,
             box: {
-                dimensions: new Cesium.Cartesian3(24.5, 18.2, 3.2),
-                material: Cesium.Color.fromCssColorString('#f7f9fc'),
+                dimensions: new Cesium.Cartesian3(40, 30, 5),
+                material: Cesium.Color.fromCssColorString('#fff6d8'),
                 heightReference: Cesium.HeightReference.NONE
             }
         }));
@@ -106,13 +106,13 @@ export function createHouseVillage(viewer, options = {}) {
             for (let i = 0; i < COUNT; i++) {
                 const u = rand(i, seed);
                 const v = rand(i + 90, seed);
-                const spread = snow ? 22 + u * 95 : 40 + u * 280;
+                const spread = snow ? 14 + u * 48 : 40 + u * 280;
                 const ang = v * Math.PI * 2;
                 const x = Math.cos(ang) * spread * (0.55 + rand(i + 3, seed) * 0.7);
                 const y = Math.sin(ang) * spread * (0.55 + rand(i + 7, seed) * 0.7);
-                const w = 7 + rand(i + 11, seed) * 8;
-                const d = 6 + rand(i + 13, seed) * 7;
-                const h = 5 + rand(i + 17, seed) * 9;
+                const w = snow ? 12 + rand(i + 11, seed) * 10 : 7 + rand(i + 11, seed) * 8;
+                const d = snow ? 10 + rand(i + 13, seed) * 9 : 6 + rand(i + 13, seed) * 7;
+                const h = snow ? 10 + rand(i + 17, seed) * 10 : 5 + rand(i + 17, seed) * 9;
                 const dLat = y / 110540;
                 const dLng = x / metersToLng;
                 const color = palette[Math.floor(rand(i + 21, seed) * palette.length)];
@@ -134,7 +134,7 @@ export function createHouseVillage(viewer, options = {}) {
             for (let i = 0; i < TREE_COUNT; i++) {
                 const u = rand(i + 200, seed);
                 const v = rand(i + 280, seed);
-                const spread = 16 + u * 110;
+                const spread = snow ? 12 + u * 55 : 16 + u * 110;
                 const ang = v * Math.PI * 2;
                 const x = Math.cos(ang) * spread;
                 const y = Math.sin(ang) * spread;
@@ -151,15 +151,15 @@ export function createHouseVillage(viewer, options = {}) {
                 const ring = [];
                 for (let k = 0; k < 8; k++) {
                     const a = (k / 8) * Math.PI * 2;
-                    ring.push(lng + (Math.cos(a) * 18) / metersToLng);
-                    ring.push(lat + (Math.sin(a) * 18) / 110540);
+                    ring.push(lng + (Math.cos(a) * 22) / metersToLng);
+                    ring.push(lat + (Math.sin(a) * 22) / 110540);
                 }
                 extras[0].polygon.hierarchy = new Cesium.PolygonHierarchy(
                     Cesium.Cartesian3.fromDegreesArray(ring)
                 );
-                extras[0].polygon.height = ground + 0.35;
-                extras[1].position = Cesium.Cartesian3.fromDegrees(lng, lat, ground + 6);
-                extras[2].position = Cesium.Cartesian3.fromDegrees(lng, lat, ground + 12.2);
+                extras[0].polygon.height = ground + 0.45;
+                extras[1].position = Cesium.Cartesian3.fromDegrees(lng, lat, ground + 8);
+                extras[2].position = Cesium.Cartesian3.fromDegrees(lng, lat, ground + 16.5);
             }
         }
 

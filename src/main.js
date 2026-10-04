@@ -13,9 +13,7 @@ import {
     COUNTDOWN_VILLAGE,
     nextTakeoffMs,
     splitCountdown,
-    getCountdownPose,
-    getVillageGround,
-    sampleVillageGround
+    getCountdownPose
 } from './countdown.js';
 
 const cesiumContainer = document.getElementById('cesiumContainer');
@@ -142,6 +140,10 @@ async function initApp() {
 
     if (isCountdownMode()) {
         document.title = 'Santa Tracking Countdown';
+        viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
+        if (typeof viewer.scene.verticalExaggeration === 'number') {
+            viewer.scene.verticalExaggeration = 1;
+        }
         const houses = createHouseVillage(viewer, { snow: true });
         const effects = createFlightEffects(viewer);
         effects.setCountdownWeather(true);
@@ -151,10 +153,7 @@ async function initApp() {
             hudCanvas: hud.canvas
         });
         const village = COUNTDOWN_VILLAGE;
-        sampleVillageGround(viewer.terrainProvider).then(() => {
-            houses.update(village.lat, village.lng, true, 'antarctica-neko', getVillageGround());
-        });
-        houses.update(village.lat, village.lng, true, 'antarctica-neko', getVillageGround());
+        houses.update(village.lat, village.lng, true, 'union-glacier', 0);
 
         const FRAME_MS = 1000 / 30;
         let lastFrameAt = 0;
@@ -178,7 +177,7 @@ async function initApp() {
             const wall = Date.now();
             viewer.clock.currentTime = Cesium.JulianDate.now();
             const pose = getCountdownPose(viewer.scene, wall);
-            houses.update(village.lat, village.lng, true, 'antarctica-neko', pose.ground);
+            houses.update(village.lat, village.lng, true, 'union-glacier', 0);
             effects.update(pose.pos, pose.vel, 0);
             effects.setVisible(true);
             hud.drawCountdown(splitCountdown(nextTakeoffMs(wall) - wall));

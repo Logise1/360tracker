@@ -350,7 +350,7 @@ export class LeftLookHud {
             70 * k,
             'Staging Ground',
             'Antarctica',
-            'Snow village  ·  Neko Harbor',
+            'Snow village  ·  Union Glacier',
             k
         );
         this._block(
