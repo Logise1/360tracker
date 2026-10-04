@@ -69,7 +69,7 @@ function altitudeForFrac(frac, cruiseAltitude, visitAltitude) {
     return visitAltitude + (cruiseAltitude - visitAltitude) * (1 - b);
 }
 
-export function buildSantaFlightPath(routeData, cruiseAltitude = 12000, visitAltitude = 160) {
+export function buildSantaFlightPath(routeData, cruiseAltitude = 12000, visitAltitude = 320) {
     const positionProperty = new Cesium.SampledPositionProperty();
     positionProperty.setInterpolationOptions({
         interpolationDegree: 1,

@@ -1,5 +1,6 @@
 import { createInteriorRoom } from './interior360.js';
 import { beginTileLoadPass, beginCubeRenderPass } from './tileStreaming.js';
+import { liftAboveTerrain, heightClearance, surfaceHeightMeters } from './terrainFollow.js';
 
 const Cesium = window.Cesium;
 
@@ -128,6 +129,8 @@ export class Cubemap360Pipeline {
         this._bank = 0;
         this._prevFwd = null;
         this._frame = 0;
+        this._terrainPersist = { floor: null, lastSurface: null };
+        this._cityTerrainPersist = { floor: null, lastSurface: null };
 
         this.initWebGL();
     }
@@ -217,9 +220,25 @@ export class Cubemap360Pipeline {
     _lockWindowPose(lat, lng) {
         if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
         const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
-        if (key === this._cityLockKey && this._cityEye) return true;
+        if (key === this._cityLockKey && this._cityEye) {
+            const surface = surfaceHeightMeters(
+                this.viewer.scene,
+                Cesium.Math.toRadians(lng),
+                Cesium.Math.toRadians(lat)
+            );
+            if (Number.isFinite(surface)) {
+                const eyeH = surface + 28;
+                const carto = Cesium.Cartographic.fromDegrees(lng, lat, eyeH);
+                this._cityEye = Cesium.Ellipsoid.WGS84.cartographicToCartesian(carto);
+                this._cityTerrainPersist.floor = eyeH;
+            }
+            return true;
+        }
 
-        const eyeCarto = Cesium.Cartographic.fromDegrees(lng, lat, 32);
+        const surface = surfaceHeightMeters(this.viewer.scene, Cesium.Math.toRadians(lng), Cesium.Math.toRadians(lat));
+        const eyeH = (Number.isFinite(surface) ? surface : (this._cityTerrainPersist.floor || 0)) + 28;
+        if (Number.isFinite(surface)) this._cityTerrainPersist.floor = eyeH;
+        const eyeCarto = Cesium.Cartographic.fromDegrees(lng, lat, eyeH);
         const eye = Cesium.Ellipsoid.WGS84.cartographicToCartesian(eyeCarto);
         const up = Cesium.Ellipsoid.WGS84.geodeticSurfaceNormal(eye, new Cesium.Cartesian3());
         const enu = Cesium.Transforms.eastNorthUpToFixedFrame(eye);
@@ -598,6 +617,15 @@ export class Cubemap360Pipeline {
             }
         }
 
+        const lifted = liftAboveTerrain(
+            viewer.scene,
+            camPos,
+            heightClearance(approach, rooftop),
+            this._terrainPersist,
+            forward
+        );
+        Cesium.Cartesian3.clone(lifted, camPos);
+
         const levelDot = Cesium.Cartesian3.dot(forward, surfaceUp);
         Cesium.Cartesian3.subtract(
             forward,
@@ -627,6 +655,15 @@ export class Cubemap360Pipeline {
             Cesium.Cartesian3.multiplyByScalar(surfaceUp, warmupLift, new Cesium.Cartesian3()),
             new Cesium.Cartesian3()
         );
+        const wuCarto = Cesium.Cartographic.fromCartesian(warmupPos);
+        if (wuCarto) {
+            const wuGround = surfaceHeightMeters(viewer.scene, wuCarto.longitude, wuCarto.latitude);
+            const wuMin = (wuGround == null ? (this._terrainPersist.floor || 0) : wuGround) + (rooftop > 0.5 ? 80 : 450);
+            if (wuCarto.height < wuMin) {
+                wuCarto.height = wuMin;
+                Cesium.Ellipsoid.WGS84.cartographicToCartesian(wuCarto, warmupPos);
+            }
+        }
         this._frame += 1;
         beginTileLoadPass(globe);
         if ((this._frame & 1) === 1) {
